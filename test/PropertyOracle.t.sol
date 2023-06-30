@@ -6,22 +6,28 @@ import "../src/PropertyOracle.sol";
 
 contract PropertyOracleTest is Test {
 
+  address public owner;
+
   PropertyOracle public propertyOracle;
 
   function setUp() public {
-    propertyOracle = new PropertyOracle();
+    owner = address(this);
+    propertyOracle = new PropertyOracle(owner);
     assertEq(propertyOracle.DECIMALS(), 9);
   }
 
-  function testGetTruePropertyValuationShouldGenerateInRange(uint256 TNFTIndex) public {
-    uint256 price = propertyOracle.getTruePropertyValuation(TNFTIndex);
-    assertGe(price, 100_000 * 10e9);
-    assertLe(price, 10_000_000 * 10e9);
+  function testSetPropertyInfoShouldRevertIfNotCalledByAdmin(uint256 TNFTIndex, uint256 rent, uint256 tpv) public {
+    vm.startPrank(address(0x42));
+    vm.expectRevert();
+    propertyOracle.setPropertyInfo(TNFTIndex, rent, tpv);
+    vm.stopPrank();
+    propertyOracle.setPropertyInfo(TNFTIndex, rent, tpv);
   }
 
-  function testGetTruePropertyValuationShouldNotRegeneratePrice(uint256 TNFTIndex) public {
-    uint256 initialPrice = propertyOracle.getTruePropertyValuation(TNFTIndex);
-    uint256 price = propertyOracle.getTruePropertyValuation(TNFTIndex);
-    assertEq(initialPrice, price);
+  function testSetPropertyInfoShouldSetValuesCorrectly(uint256 TNFTIndex, uint256 rent, uint256 tpv) public {
+    propertyOracle.setPropertyInfo(TNFTIndex, rent, tpv);
+    (uint256 storedRent, uint256 storedTpv) = propertyOracle.getPropertyInfo(TNFTIndex);
+    assertEq(rent, storedRent);
+    assertEq(tpv, storedTpv);
   }
 }

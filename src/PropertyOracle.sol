@@ -5,23 +5,43 @@ pragma solidity 0.8.7;
 /// True Property Valuation (TPV) based on real estate market prices.
 contract PropertyOracle {
 
+  // the admin can feed off chain data to the contract
+  address public admin;
+
   uint256 public constant DECIMALS = 9; // 9 decimals just like USDR
 
+  mapping (uint256 => uint256) public propertyMonthlyRent;
   mapping (uint256 => uint256) public truePropertyValuations;
 
-  /// @dev Compute some random value between $100k - $10M and stores it in a mapping to keep the price constant after
-  /// the initial call. A real production implementation would generate and update the mapping based on real world data.
-  function getTruePropertyValuation(uint256 TNFTIndex) external returns (uint256 tpv) {
-    tpv = truePropertyValuations[TNFTIndex];
+  modifier onlyAdmin() {
+    require(msg.sender == admin);
+    _;
+  }
 
-    if (tpv == 0) {
-      uint256 randomNumber = uint256(
-        keccak256(abi.encodePacked(block.timestamp, block.difficulty, block.coinbase, block.number))
-      );
-      uint256 min = 100000;
-      uint256 max = 10000000;
-      tpv = ((randomNumber % (max - min)) + min) * 10 ** DECIMALS;
-      truePropertyValuations[TNFTIndex] = tpv;
-    }
+  constructor (address admin_) {
+    require(admin_ != address(0));
+    admin = admin_;
+  }
+
+  /// @dev Retrieve property rent and tpv.
+  function getPropertyInfo(uint256 TNFTIndex) public view returns (uint256 rent, uint256 tpv) {
+    rent = propertyMonthlyRent[TNFTIndex];
+    tpv = truePropertyValuations[TNFTIndex];
+  }
+
+  /// @dev Called off chain to set initial property rent and value from real world data.
+  function setPropertyInfo(uint256 TNFTIndex, uint256 rent, uint256 tpv) external onlyAdmin {
+    propertyMonthlyRent[TNFTIndex] = rent;
+    truePropertyValuations[TNFTIndex] = tpv;
+  }
+
+  /// @dev Called off chain to update the mapping with property rent from real world data.
+  function updatePropertyMonthlyRent(uint256 TNFTIndex, uint256 rent) external onlyAdmin {
+    propertyMonthlyRent[TNFTIndex] = rent;
+  }
+
+  /// @dev Called off chain to update the mapping with property value from real world data.
+  function updateTruePropertyValue(uint256 TNFTIndex, uint256 tpv) external onlyAdmin {
+    truePropertyValuations[TNFTIndex] = tpv;
   }
 }
