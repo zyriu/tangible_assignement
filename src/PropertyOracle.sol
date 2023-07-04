@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.7;
 
-/// @title PropertyOracle simulates, for the sake of this assignment, an oracle that would feed an adequate
-/// True Property Valuation (TPV) based on real estate market prices.
+/// @title For the sake of simplicity for this assignment, we simulate an oracle that would feed an adequate
+/// True Property Valuation (TPV) and rent based on real estate market prices.
 contract PropertyOracle {
 
   // the admin can feed off chain data to the contract
   address public admin;
 
-  uint256 public constant DECIMALS = 9; // 9 decimals just like USDR
-
-  mapping (uint256 => uint256) public propertyMonthlyRent;
+  // for the sake of simplicity for this exercise we use a weekly rent
+  mapping (uint256 => uint256) public propertyWeeklyRent;
   mapping (uint256 => uint256) public truePropertyValuations;
 
   modifier onlyAdmin() {
@@ -25,19 +24,19 @@ contract PropertyOracle {
 
   /// @dev Retrieve property rent and tpv.
   function getPropertyInfo(uint256 TNFTIndex) public view returns (uint256 rent, uint256 tpv) {
-    rent = propertyMonthlyRent[TNFTIndex];
+    rent = propertyWeeklyRent[TNFTIndex];
     tpv = truePropertyValuations[TNFTIndex];
   }
 
   /// @dev Called off chain to set initial property rent and value from real world data.
   function setPropertyInfo(uint256 TNFTIndex, uint256 rent, uint256 tpv) external onlyAdmin {
-    propertyMonthlyRent[TNFTIndex] = rent;
+    propertyWeeklyRent[TNFTIndex] = rent;
     truePropertyValuations[TNFTIndex] = tpv;
   }
 
   /// @dev Called off chain to update the mapping with property rent from real world data.
-  function updatePropertyMonthlyRent(uint256 TNFTIndex, uint256 rent) external onlyAdmin {
-    propertyMonthlyRent[TNFTIndex] = rent;
+  function updatePropertyWeeklyRent(uint256 TNFTIndex, uint256 rent) external onlyAdmin {
+    propertyWeeklyRent[TNFTIndex] = rent;
   }
 
   /// @dev Called off chain to update the mapping with property value from real world data.
