@@ -13,7 +13,7 @@ The production design includes a vault that collects and deposits rent on a dail
 use a system similar to liquidity mining where the rent money is deposited in the vault, and the money vests linearly
 and can be claimed whenever convenient, to replicate the future production design.
 
-## Design
+## Design choices
 
 As users will mint and redeem regularly, the value of the basket need to be kept up to date very often. I can see two
 options in order to determine the value of the basket:
@@ -30,15 +30,21 @@ update on the basket is processed only once.
 
 The basket will keep track of the total values of the TNFTs held, as well as the ever-increasing rent of said
 properties. If any of these data is updated in the oracle, only the delta will need to be updated in the basket. When
-users mint using a TFNT, the oracle is queried to fetch the TPV and rent, and that data is added to the current basket
-information. When a user redeems his tokens, the oracle is queried again, the TPV is deducted from the total value of
-the basket, and the property rent value from the total rental income.
+users mint using a TFNT, the oracle is queried to fetch the TPV, and that value is added to the current basket total
+price. When a user redeems his tokens, the oracle is queried again, the TPV deducted from the total value of
+the basket, and the property rent removed from the vault.
+
+The Vault contract keeps track of the rental amount owed by the tenants. The current version is a very crude
+implementation that assumes that only properties paying rent are part of the basket, as the basket will query the
+outstanding balance to compute the price during a mint or redeem. Another possible implementation would allow rent
+collecting for every TNFT, basket or not, in which case the rental amount will also be stored in the ReUSD contract
+and computed to exclude the outstanding rent from non-basket properties.
 
 ## Contracts
 
 - TNFT - TangibleREstate (RLTY): 0x29613FbD3e695a669C647597CEFd60bA255cc1F8
 
-## Some edge cases out of the scope of this assignment
+## Potential edge case
 
 1. In the case of a "bank run", latest creditors could be stuck. This example assumes that the user can choose the split
 between rent and TFNT value, but the edge case also works if the split is set beforehand. Let's illustrate:
