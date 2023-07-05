@@ -9,7 +9,7 @@ import "./interfaces/IVault.sol";
 
 /// @title For the sake of simplicity for this assignment, we simulate a vault that would receive weekly or monthly rent
 /// payments. Instead of claiming rent on a daily basis, the vault accumulate rewards and can be claimed pro rata
-/// whenever convenient. This contract isn't production readt as it doesn't account for a change in the rental amount,
+/// whenever convenient. This contract isn't production ready as it doesn't account for a change in the rental amount,
 /// nor performs safety checks on who claims the rent, etc.
 contract Vault is IVault, Ownable {
 
@@ -44,6 +44,7 @@ contract Vault is IVault, Ownable {
     _;
   }
 
+  /// @dev returns the amount of rent that is currently claimable
   function accruedRent() public view override returns (uint256 balance) {
     balance = (block.timestamp - latestClaimTimestamp) * totalWeeklyRental / 7 days;
     balance += outstandingBalance;
@@ -51,7 +52,7 @@ contract Vault is IVault, Ownable {
 
   /// @dev allows third parties to collect rent. In a production environment, this would have proper access control for
   /// either a landlord, protocols, etc.
-  function claimRent() external onlyRentCollector {
+  function claimRent() external override onlyRentCollector {
     uint256 amountToClaim = accruedRent();
     if (amountToClaim == 0) revert NothingToClaim();
     if (amountToClaim > USDC.balanceOf(address(this))) revert InsufficientUSDCBalance();
@@ -87,5 +88,12 @@ contract Vault is IVault, Ownable {
     if (propertyOracle_ == address(0)) revert NullAddress();
 
     propertyOracle = IPropertyOracle(propertyOracle_);
+  }
+
+  /// @dev set the rent collector
+  function setRentCollector(address rentCollector_) external onlyOwner {
+    if (rentCollector_ == address(0)) revert NullAddress();
+
+    rentCollector = rentCollector_;
   }
 }

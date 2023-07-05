@@ -10,14 +10,21 @@ contract PropertyOracleTest is Test {
 
   PropertyOracle public propertyOracle;
 
+  // polygon state
+  string POLYGON_RPC = vm.envString("POLYGON_RPC");
+  IERC721 public tangibleREstateTNFT = IERC721(0x29613FbD3e695a669C647597CEFd60bA255cc1F8);
+  uint256 private constant TNFT_FIRST_TOKEN_ID = 0x10000000000000000000000000000000a;
+
   function setUp() public {
+    vm.selectFork(vm.createFork(POLYGON_RPC));
     owner = address(this);
-    propertyOracle = new PropertyOracle(owner);
+    propertyOracle = new PropertyOracle();
+    propertyOracle.setTNFTContract(address(tangibleREstateTNFT));
   }
 
-  function testSetPropertyInfoShouldRevertIfNotCalledByAdmin(uint256 TNFTIndex, uint256 rent, uint256 tpv) public {
+  function testSetPropertyInfoShouldRevertIfNotCalledByOwner(uint256 TNFTIndex, uint256 rent, uint256 tpv) public {
     vm.startPrank(address(0x42));
-    vm.expectRevert();
+    vm.expectRevert("Ownable: caller is not the owner");
     propertyOracle.setPropertyInfo(TNFTIndex, rent, tpv);
     vm.stopPrank();
     propertyOracle.setPropertyInfo(TNFTIndex, rent, tpv);
@@ -33,6 +40,40 @@ contract PropertyOracleTest is Test {
     assertEq(tpv, storedTpv);
   }
 
+  function testSetReUSDShouldRevertIfNotCalledByOwner() public {
+    vm.prank(address(0x42));
+    vm.expectRevert("Ownable: caller is not the owner");
+    propertyOracle.setReUSD(owner);
+  }
+
+  function testSetReUSDShouldRevertIfCalledWithNullAddress() public {
+    vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("NullAddress()"))));
+    propertyOracle.setReUSD(address(0x0));
+  }
+
+  function testSetReUSDShouldSetReUSDProperly() public {
+    assertEq(address(propertyOracle.reUSD()), address(0x0));
+    propertyOracle.setReUSD(address(0x42));
+    assertEq(address(propertyOracle.reUSD()), address(0x42));
+  }
+
+  function testSetTNFTContractShouldRevertIfNotCalledByOwner() public {
+    vm.prank(address(0x42));
+    vm.expectRevert("Ownable: caller is not the owner");
+    propertyOracle.setTNFTContract(owner);
+  }
+
+  function testSetTNFTContractShouldRevertIfCalledWithNullAddress() public {
+    vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("NullAddress()"))));
+    propertyOracle.setTNFTContract(address(0x0));
+  }
+
+  function testSetTNFTContractShouldSetTNFTContractProperly() public {
+    assertEq(address(propertyOracle.tangibleREstateTNFT()), address(tangibleREstateTNFT));
+    propertyOracle.setTNFTContract(address(0x42));
+    assertEq(address(propertyOracle.tangibleREstateTNFT()), address(0x42));
+  }
+
   function testUpdatePropertyWeeklyRentShouldUpdateRentCorrectly(uint256 TNFTIndex, uint256 rent) public {
     (uint256 storedRent, ) = propertyOracle.getPropertyInfo(TNFTIndex);
     assertEq(storedRent, 0);
@@ -41,11 +82,11 @@ contract PropertyOracleTest is Test {
     assertEq(rent, storedRent);
   }
 
-  function testUpdateTruePropertyValueShouldUpdateValueCorrectly(uint256 TNFTIndex, uint256 tpv) public {
-    (, uint256 storedTpv) = propertyOracle.getPropertyInfo(TNFTIndex);
+  function testUpdateTruePropertyValueShouldUpdateValueCorrectly(uint256 tpv) public {
+    (, uint256 storedTpv) = propertyOracle.getPropertyInfo(TNFT_FIRST_TOKEN_ID);
     assertEq(storedTpv, 0);
-    propertyOracle.updateTruePropertyValue(TNFTIndex, tpv);
-    (, storedTpv) = propertyOracle.getPropertyInfo(TNFTIndex);
+    propertyOracle.updateTruePropertyValue(TNFT_FIRST_TOKEN_ID, tpv);
+    (, storedTpv) = propertyOracle.getPropertyInfo(TNFT_FIRST_TOKEN_ID);
     assertEq(tpv, storedTpv);
   }
 }

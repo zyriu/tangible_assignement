@@ -11,12 +11,14 @@ contract VaultTest is Test {
   address public owner;
 
   PropertyOracle public propertyOracle;
-  ERC20PresetFixedSupply public USDC;
   Vault public vault;
+
+  // mock USDC
+  ERC20PresetFixedSupply public USDC;
 
   function setUp() public {
     owner = address(this);
-    propertyOracle = new PropertyOracle(owner);
+    propertyOracle = new PropertyOracle();
     USDC = new ERC20PresetFixedSupply("Circle USD", "USDC", UINT256_MAX, owner);
     vault = new Vault(address(propertyOracle), owner, address(USDC));
   }
@@ -42,7 +44,7 @@ contract VaultTest is Test {
     vm.warp(block.timestamp + 1 days);
     vault.initializeRentCollection(1);
     assertEq(vault.outstandingBalance(), weeklyRent * 1 days / 7 days);
-    assertEq(vault.claimableRentBalance(), weeklyRent * 1 days / 7 days);
+    assertEq(vault.accruedRent(), weeklyRent * 1 days / 7 days);
     vm.warp(block.timestamp + 1 days);
     assertEq(vault.outstandingBalance(), weeklyRent * 1 days / 7 days);
     vault.claimRent();
@@ -70,7 +72,7 @@ contract VaultTest is Test {
     vault.claimRent();
   }
 
-  function testInitializeRentCollectionShouldInitializeProperly(uint256 TNFTId, uint256 weeklyRent) public {
+  function testInitializeRentCollectionShouldSetRentProperly(uint256 TNFTId, uint256 weeklyRent) public {
     vm.assume(weeklyRent >= 500 * 1e18 && weeklyRent <= 50_000 * 1e18);
     propertyOracle.setPropertyInfo(TNFTId, weeklyRent, 1_000_000 * 1e18);
     assertEq(vault.totalWeeklyRental(), 0);
@@ -121,5 +123,22 @@ contract VaultTest is Test {
     assertFalse(address(vault.propertyOracle()) == address(0x42));
     vault.setPropertyOracle(address(0x42));
     assertEq(address(vault.propertyOracle()), address(0x42));
+  }
+
+  function testSetRentCollectorShouldRevertIfNotCalledByOwner() public {
+    vm.prank(address(0x42));
+    vm.expectRevert("Ownable: caller is not the owner");
+    vault.setRentCollector(owner);
+  }
+
+  function testSetRentCollectorShouldRevertIfCalledWithNullAddress() public {
+    vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("NullAddress()"))));
+    vault.setRentCollector(address(0x0));
+  }
+
+  function testSetRentCollectorShouldSetRentCollectorProperly() public {
+    assertEq(vault.rentCollector(), owner);
+    vault.setRentCollector(address(0x42));
+    assertEq(vault.rentCollector(), address(0x42));
   }
 }

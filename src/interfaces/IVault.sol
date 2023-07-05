@@ -2,5 +2,6 @@
 pragma solidity 0.8.7;
 
 interface IVault {
-  function claimableRentBalance() external view returns (uint256);
+  function accruedRent() external view returns (uint256);
+  function claimRent() external;
 }
